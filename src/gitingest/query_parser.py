@@ -327,7 +327,10 @@ def _parse_local_dir_path(path_str: str) -> IngestionQuery:
         A dictionary containing the parsed details of the file path.
 
     """
+    root_path = TMP_BASE_PATH.resolve()
     path_obj = Path(path_str).resolve()
+    if os.path.commonpath([root_path, path_obj]) != str(root_path):
+        raise InvalidPatternError(f"Path {path_str} escapes the allowed root directory.")
     slug = path_obj.name if path_str == "." else path_str.strip("/")
     return IngestionQuery(local_path=path_obj, slug=slug, id=str(uuid.uuid4()))
 
