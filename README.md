@@ -196,6 +196,8 @@ This is because Jupyter notebooks are asynchronous by default.
 
 ## 🐳 Self-host
 
+### Using Docker
+
 1. Build the image:
 
    ``` bash
@@ -231,6 +233,62 @@ The application can be configured using the following environment variables:
 - **GITINGEST_SENTRY_PROFILE_SESSION_SAMPLE_RATE**: Sampling rate for profile sessions (default: "1.0", range: 0.0-1.0)
 - **GITINGEST_SENTRY_PROFILE_LIFECYCLE**: Profile lifecycle mode (default: "trace")
 - **GITINGEST_SENTRY_SEND_DEFAULT_PII**: Send default personally identifiable information (default: "true")
+
+### Using Docker Compose
+
+The project includes a `compose.yml` file that allows you to easily run the application in both development and production environments.
+
+#### Compose File Structure
+
+The `compose.yml` file uses YAML anchoring with `&app-base` and `<<: *app-base` to define common configuration that is shared between services:
+
+```yaml
+# Common base configuration for all services
+x-app-base: &app-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  ports:
+    - "${APP_WEB_BIND:-8000}:8000"  # Main application port
+    - "${GITINGEST_METRICS_HOST:-127.0.0.1}:${GITINGEST_METRICS_PORT:-9090}:9090"  # Metrics port
+  # ... other common configurations
+```
+
+#### Services
+
+The file defines two services:
+
+1. **app**: Production service configuration
+   - Uses the `prod` profile
+   - Sets the Sentry environment to "production"
+   - Configured for stable operation with `restart: unless-stopped`
+
+2. **app-dev**: Development service configuration
+   - Uses the `dev` profile
+   - Enables debug mode
+   - Mounts the source code for live development
+   - Uses hot reloading for faster development
+
+#### Usage Examples
+
+To run the application in development mode:
+
+```bash
+docker compose --profile dev up
+```
+
+To run the application in production mode:
+
+```bash
+docker compose --profile prod up -d
+```
+
+To build and run the application:
+
+```bash
+docker compose --profile prod build
+docker compose --profile prod up -d
+```
 
 ## 🤝 Contributing
 
