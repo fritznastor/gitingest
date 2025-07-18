@@ -274,8 +274,8 @@ The file defines three services:
    - Uses the `dev` profile (only available in development mode)
    - Provides S3-compatible storage for local development
    - Accessible via:
-     - API: Port 9000 (http://localhost:9000)
-     - Web Console: Port 9001 (http://localhost:9001)
+     - API: Port 9000 ([localhost:9000](http://localhost:9000))
+     - Web Console: Port 9001 ([localhost:9001](http://localhost:9001))
    - Default admin credentials:
      - Username: `minioadmin`
      - Password: `minioadmin`
