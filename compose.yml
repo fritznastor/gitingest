@@ -46,6 +46,7 @@ services:
       - DEBUG=true
       - GITINGEST_SENTRY_ENVIRONMENT=${GITINGEST_SENTRY_ENVIRONMENT:-development}
       # S3 Configuration
+      - S3_ENABLED=true
       - S3_ENDPOINT=http://minio:9000
       - S3_ACCESS_KEY=${S3_ACCESS_KEY:-gitingest}
       - S3_SECRET_KEY=${S3_SECRET_KEY:-gitingest123}
@@ -53,7 +54,7 @@ services:
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-gitingest-bucket}
       - S3_REGION=${S3_REGION:-us-east-1}
       # Public URL for S3 resources
-      - S3_ALIAS_HOST=${S3_ALIAS_HOST:-127.0.0.1:9000/${S3_BUCKET_NAME:-gitingest-bucket}}
+      - S3_ALIAS_HOST=${S3_ALIAS_HOST:-http://127.0.0.1:9000/${S3_BUCKET_NAME:-gitingest-bucket}}
     volumes:
       # Mount source code for live development
       - ./src:/app:ro
@@ -103,6 +104,22 @@ services:
       - ./.docker/minio/setup.sh:/setup.sh:ro
     entrypoint: sh
     command: -c /setup.sh
+
+  # Test service for running tests
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    profiles:
+      - dev
+    environment:
+      - DEBUG=true
+      - PYTHONPATH=/app:/tests
+    volumes:
+      - ./tests:/tests:ro
+      - ./src:/app/src:ro
+    working_dir: /tests
+    command: ["python", "-m", "pytest"]
 
 volumes:
   minio-data:
