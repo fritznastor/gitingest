@@ -1,8 +1,8 @@
 """Ingest endpoint for the API."""
 
-from typing import Annotated, Union
+from typing import Union
 
-from fastapi import APIRouter, Body, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from prometheus_client import Counter
 
@@ -22,7 +22,7 @@ router = APIRouter()
 @limiter.limit("10/minute")
 async def api_ingest(
     request: Request,  # noqa: ARG001 (unused-function-argument) # pylint: disable=unused-argument
-    ingest_request: Annotated[IngestRequest, Body(...)],
+    ingest_request: IngestRequest,
 ) -> JSONResponse:
     """Ingest a Git repository and return processed content.
 
