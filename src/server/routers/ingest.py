@@ -1,16 +1,14 @@
 """Ingest endpoint for the API."""
 
-from __future__ import annotations
+from typing import Annotated, Union
 
-from typing import Any
-
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, Body, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from prometheus_client import Counter
 
 from gitingest.config import TMP_BASE_PATH
 from gitingest.utils.s3_utils import get_s3_url_for_ingest_id, is_s3_enabled
-from server.models import IngestErrorResponse
+from server.models import IngestRequest
 from server.routers_utils import COMMON_INGEST_RESPONSES, _perform_ingestion
 from server.server_config import MAX_DISPLAY_SIZE
 from server.server_utils import limiter
@@ -24,7 +22,7 @@ router = APIRouter()
 @limiter.limit("10/minute")
 async def api_ingest(
     request: Request,  # noqa: ARG001 (unused-function-argument) # pylint: disable=unused-argument
-    ingest_data: dict[str, Any],
+    ingest_request: Annotated[IngestRequest, Body(...)],
 ) -> JSONResponse:
     """Ingest a Git repository and return processed content.
 
@@ -41,38 +39,15 @@ async def api_ingest(
     - **JSONResponse**: Success response with ingestion results or error response with appropriate HTTP status code
 
     """
-
-    # Extract and validate data from dictionary
-    def _validate_input_text(text: str) -> None:
-        if not text:
-            msg = "input_text cannot be empty"
-            raise ValueError(msg)
-
-    try:
-        input_text = ingest_data.get("input_text", "").strip()
-        _validate_input_text(input_text)
-
-        max_file_size = ingest_data.get("max_file_size", 243)
-        if isinstance(max_file_size, str):
-            max_file_size = int(max_file_size)
-
-        pattern_type = ingest_data.get("pattern_type", "exclude")
-        pattern = ingest_data.get("pattern", "").strip()
-        token = ingest_data.get("token") or None
-
-    except (ValueError, TypeError) as e:
-        error_response = IngestErrorResponse(error=f"Invalid request data: {e}")
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=error_response.model_dump())
-
     response = await _perform_ingestion(
-        input_text=input_text,
-        max_file_size=max_file_size,
-        pattern_type=pattern_type,
-        pattern=pattern,
-        token=token,
+        input_text=ingest_request.input_text,
+        max_file_size=ingest_request.max_file_size,
+        pattern_type=ingest_request.pattern_type.value,
+        pattern=ingest_request.pattern,
+        token=ingest_request.token,
     )
     # limit URL to 255 characters
-    ingest_counter.labels(status=response.status_code, url=input_text[:255]).inc()
+    ingest_counter.labels(status=response.status_code, url=ingest_request.input_text[:255]).inc()
     return response
 
 
@@ -119,7 +94,7 @@ async def api_ingest_get(
 
 
 @router.get("/api/download/file/{ingest_id}", response_model=None)
-async def download_ingest(ingest_id: str) -> RedirectResponse | FileResponse:
+async def download_ingest(ingest_id: str) -> Union[RedirectResponse, FileResponse]:  # noqa: FA100
     """Download the first text file produced for an ingest ID.
 
     **This endpoint retrieves the first ``*.txt`` file produced during the ingestion process**
