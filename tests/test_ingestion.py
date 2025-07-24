@@ -244,19 +244,6 @@ def test_ingest_skips_binary_files(temp_directory: Path, sample_query: Ingestion
     assert b"\x00\xff\x00\xff".decode(errors="ignore") not in content
 
 
-def test_ingest_binary_file_summary(temp_directory: Path, sample_query: IngestionQuery) -> None:
-    """Ensure binary files are counted and marked in content."""
-    binary_file = temp_directory / "binary.bin"
-    binary_file.write_bytes(b"\x00\xff\x00\xff")
-    sample_query.local_path = temp_directory
-    sample_query.subpath = "/"
-    sample_query.type = None
-    summary, _, content = ingest_query(sample_query)
-    assert "binary.bin" in content
-    assert "[Binary file]" in content
-    assert "Files analyzed:" in summary
-
-
 def test_ingest_skips_symlinks(temp_directory: Path, sample_query: IngestionQuery) -> None:
     """Test that symlinks are not included as file content, but as a marker."""
     target_file = temp_directory / "file1.txt"
@@ -274,19 +261,18 @@ def test_ingest_skips_symlinks(temp_directory: Path, sample_query: IngestionQuer
     assert "hello" not in content.split("SYMLINK: symlink.txt")[1]
 
 
-def test_ingest_symlink_summary(temp_directory: Path, sample_query: IngestionQuery) -> None:
-    """Ensure symlinks are marked in content."""
-    target_file = temp_directory / "file1.txt"
-    target_file.write_text("hello")
-    symlink = temp_directory / "symlink.txt"
-    symlink.symlink_to(target_file)
+def test_symlink_loop(temp_directory: Path, sample_query: IngestionQuery) -> None:
+    """Test that symlink loops do not cause infinite recursion."""
+    loop_dir = temp_directory / "loop"
+    loop_dir.mkdir()
+    (loop_dir / "file.txt").write_text("loop file")
+    # Create a symlink inside loop_dir pointing to its parent
+    (loop_dir / "parent_link").symlink_to(temp_directory)
     sample_query.local_path = temp_directory
     sample_query.subpath = "/"
     sample_query.type = None
-    summary, _, content = ingest_query(sample_query)
-    assert "symlink.txt" in content
-    assert "SYMLINK: symlink.txt" in content
-    assert "Files analyzed:" in summary
+    _, _, content = ingest_query(sample_query)
+    assert "file.txt" in content
 
 
 def test_ingest_large_file_handling(temp_directory: Path, sample_query: IngestionQuery) -> None:
@@ -443,3 +429,46 @@ def test_mixed_file_types_in_directory(temp_directory: Path, sample_query: Inges
     assert "[Binary file]" in content
     assert "symlink.txt" in content
     assert "SYMLINK:" in content
+
+
+def test_pattern_matching_various_globs(temp_directory: Path, sample_query: IngestionQuery) -> None:
+    """Test that various glob patterns correctly match files for ingestion."""
+    (temp_directory / "foo.txt").write_text("foo")
+    (temp_directory / "bar.py").write_text("bar")
+    (temp_directory / "baz.md").write_text("baz")
+    subdir = temp_directory / "sub"
+    subdir.mkdir()
+    (subdir / "nested.py").write_text("nested")
+    (subdir / "nested.txt").write_text("nested txt")
+
+    sample_query.local_path = temp_directory
+    sample_query.subpath = "/"
+    sample_query.type = None
+    sample_query.include_patterns = {"*.txt"}
+    sample_query.ignore_patterns = set()
+    _, _, content = ingest_query(sample_query)
+    assert "foo.txt" in content
+    assert "bar.py" not in content
+    assert "baz.md" not in content
+    assert "nested.txt" in content
+
+    sample_query.include_patterns = {"**/*.py"}
+    _, _, content = ingest_query(sample_query)
+    assert "bar.py" in content
+    assert "nested.py" in content
+    assert "foo.txt" not in content
+
+    sample_query.include_patterns = {"*.md", "sub/*.txt"}
+    _, _, content = ingest_query(sample_query)
+    assert "baz.md" in content
+    assert "nested.txt" in content
+    assert "foo.txt" not in content
+    assert "bar.py" not in content
+
+    sample_query.include_patterns = set()
+    sample_query.ignore_patterns = {"*.py", "sub/*.py"}
+    _, _, content = ingest_query(sample_query)
+    assert "foo.txt" in content
+    assert "baz.md" in content
+    assert "bar.py" not in content
+    assert "nested.py" not in content
