@@ -16,10 +16,24 @@
                 {{ footer_icon_link('https://discord.gg/zerRaGK9EC',
                                 'icons/discord.svg',
                                 'Discord') }}
-                {{ footer_icon_link('https://github.com/coderamp-labs/gitingest/releases/tag/v0.1.5',
+                {{ footer_icon_link('https://github.com/coderamp-labs/gitingest/releases/latest',
                                 'icons/changelog.svg',
-                                'Changelog: v0.1.5') }}
+                                'Latest Changelog') }}
             </div>
         </div>
     </div>
+    <script>
+        fetch('https://api.github.com/repos/coderamp-labs/gitingest/releases/latest')
+            .then(response => response.json())
+            .then(data => {
+                const changelogLink = document.querySelector('a[href="https://github.com/coderamp-labs/gitingest/releases/latest"]');
+                if (changelogLink && data.html_url) {
+                    changelogLink.href = data.html_url;
+                    const span = changelogLink.querySelector('span');
+                    if (span) {
+                        span.textContent = `Changelog (${data.tag_name})`;
+                    }
+                }
+            });
+    </script>
 </footer>
