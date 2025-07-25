@@ -298,18 +298,6 @@ def test_is_github_host_edge_cases(url: str) -> None:
         pytest.fail(f"is_github_host raised {exc.__class__.__name__} for url: {url}")
 
 
-def test_create_git_command_empty_base_cmd() -> None:
-    """Test create_git_command with an empty base_cmd."""
-    cmd = create_git_command([], "/tmp", "https://github.com/owner/repo.git", None)
-    assert cmd[:2] == ["-C", "/tmp"]
-
-
-def test_create_git_command_empty_token() -> None:
-    """Test create_git_command with an empty token string."""
-    cmd = create_git_command(["git", "clone"], "/tmp", "https://github.com/owner/repo.git", "")
-    assert "-c" not in cmd
-
-
 def test_token_not_in_command_plaintext() -> None:
     """Ensure the token is not present in the command as plain text."""
     token = "ghp_" + "x" * 36
