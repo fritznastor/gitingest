@@ -49,8 +49,8 @@ async def test_remote_repository_analysis(request: pytest.FixtureRequest) -> Non
     """Test the complete flow of analyzing a remote repository."""
     client = request.getfixturevalue("test_client")
     form_data = {
-        "input_text": "https://github.com/pallets/flask",
-        "max_file_size": "200",
+        "input_text": "https://github.com/octocat/Hello-World",
+        "max_file_size": 243,
         "pattern_type": "exclude",
         "pattern": "",
         "token": "",
@@ -75,7 +75,7 @@ async def test_invalid_repository_url(request: pytest.FixtureRequest) -> None:
     client = request.getfixturevalue("test_client")
     form_data = {
         "input_text": "https://github.com/nonexistent/repo",
-        "max_file_size": "200",
+        "max_file_size": 243,
         "pattern_type": "exclude",
         "pattern": "",
         "token": "",
@@ -95,8 +95,8 @@ async def test_large_repository(request: pytest.FixtureRequest) -> None:
     """Simulate analysis of a large repository with nested folders and many files."""
     client = request.getfixturevalue("test_client")
     form_data = {
-        "input_text": "https://github.com/pallets/flask",
-        "max_file_size": "100",  # Lower this to force skipping large files
+        "input_text": "https://github.com/octocat/hello-world",
+        "max_file_size": 10,
         "pattern_type": "exclude",
         "pattern": "",
         "token": "",
@@ -120,8 +120,8 @@ async def test_concurrent_requests(request: pytest.FixtureRequest) -> None:
 
     def make_request() -> None:
         form_data = {
-            "input_text": "https://github.com/pallets/flask",
-            "max_file_size": "200",
+            "input_text": "https://github.com/octocat/hello-world",
+            "max_file_size": 243,
             "pattern_type": "exclude",
             "pattern": "",
             "token": "",
@@ -147,8 +147,8 @@ async def test_large_file_handling(request: pytest.FixtureRequest) -> None:
     """Test handling of repositories with large files."""
     client = request.getfixturevalue("test_client")
     form_data = {
-        "input_text": "https://github.com/pallets/flask",
-        "max_file_size": "1",
+        "input_text": "https://github.com/octocat/Hello-World",
+        "max_file_size": 1,
         "pattern_type": "exclude",
         "pattern": "",
         "token": "",
@@ -170,8 +170,8 @@ async def test_repository_with_patterns(request: pytest.FixtureRequest) -> None:
     """Test repository analysis with include/exclude patterns."""
     client = request.getfixturevalue("test_client")
     form_data = {
-        "input_text": "https://github.com/pallets/flask",
-        "max_file_size": "200",
+        "input_text": "https://github.com/octocat/Hello-World",
+        "max_file_size": 243,
         "pattern_type": "include",
         "pattern": "*.md",
         "token": "",
