@@ -26,6 +26,7 @@ repos:
 
       - id: trailing-whitespace
         description: 'Trim trailing whitespace.'
+        exclude: CHANGELOG.md
 
       - id: check-docstring-first
         description: 'Check a common error of defining a docstring after code.'
@@ -117,6 +118,7 @@ repos:
             click>=8.0.0,
             'fastapi[standard]>=0.109.1',
             httpx,
+            loguru>=0.7.0,
             pathspec>=0.12.1,
             prometheus-client,
             pydantic,
@@ -143,6 +145,7 @@ repos:
             click>=8.0.0,
             'fastapi[standard]>=0.109.1',
             httpx,
+            loguru>=0.7.0,
             pathspec>=0.12.1,
             prometheus-client,
             pydantic,
