@@ -1,5 +1,6 @@
 """Integration tests covering core functionalities, edge cases, and concurrency handling."""
 
+import re
 import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -168,44 +169,52 @@ async def test_large_file_handling(request: pytest.FixtureRequest) -> None:
 
 @pytest.mark.asyncio
 async def test_repository_with_patterns(request: pytest.FixtureRequest) -> None:
-    """Test repository analysis with include/exclude patterns."""
+    """Test repository analysis using include patterns on a real GitHub repo."""
     client = request.getfixturevalue("test_client")
+
+    # Target repository and file pattern
+    repo_url = "https://github.com/pallets/flask"
+    pattern = "*.md"
+
     form_data = {
-        "input_text": "https://github.com/octocat/Hello-World",
+        "input_text": repo_url,
         "max_file_size": 243,
         "pattern_type": "include",
-        "pattern": "*.md",
+        "pattern": pattern,
         "token": "",
     }
 
     response = client.post("/api/ingest", json=form_data)
-    assert response.status_code == status.HTTP_200_OK, f"Request failed: {response.text}"
+    assert response.status_code == status.HTTP_200_OK, f"Expected 200 OK, got {response.status_code}: {response.text}"
 
     response_data = response.json()
-    if response.status_code == status.HTTP_200_OK:
-        assert "content" in response_data
-        assert isinstance(response_data["content"], str)
+    assert isinstance(response_data, dict), "Response is not a JSON object"
 
-        assert "repo_url" in response_data
-        assert response_data["repo_url"].startswith("https://github.com/")
+    # Ruff-compliant assertions
+    assert "content" in response_data, "Missing 'content' in response"
+    assert isinstance(response_data["content"], str), "'content' is not a string"
 
-        assert "summary" in response_data
-        assert isinstance(response_data["summary"], str)
-        assert "pallets/flask" in response_data["summary"].lower()
+    assert "repo_url" in response_data, "Missing 'repo_url'"
+    assert response_data["repo_url"].startswith("https://github.com/"), (
+        "'repo_url' does not start with expected prefix"
+    )
 
-        assert "tree" in response_data
-        assert isinstance(response_data["tree"], str)
-        assert "pallets-flask" in response_data["tree"].lower()
+    assert "summary" in response_data, "Missing 'summary'"
+    assert isinstance(response_data["summary"], str), "'summary' is not a string"
 
-        assert "pattern_type" in response_data
-        assert response_data["pattern_type"] == "include"
+    assert "tree" in response_data, "Missing 'tree'"
+    assert isinstance(response_data["tree"], str), "'tree' is not a string"
 
-        assert "pattern" in response_data
-        assert response_data["pattern"] == "*.md"
-    else:
-        assert "error" in response_data
-        assert isinstance(response_data["error"], str)
-        assert response_data["error"]
+    assert "pattern_type" in response_data, "Missing 'pattern_type'"
+    assert response_data["pattern_type"] == "include", "Unexpected 'pattern_type' value"
+
+    assert "pattern" in response_data, "Missing 'pattern'"
+    assert response_data["pattern"] == pattern, "Unexpected 'pattern' value"
+
+    # Dynamically validate repo name
+    repo_slug = re.sub(r"https://github\.com/", "", repo_url).lower()
+    assert repo_slug in response_data["summary"].lower(), f"Expected repo slug '{repo_slug}' in summary"
+    assert repo_slug.replace("/", "-") in response_data["tree"].lower(), f"Expected slug '{repo_slug}' in tree"
 
 
 @pytest.mark.asyncio
